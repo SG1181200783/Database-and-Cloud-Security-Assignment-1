@@ -9,3 +9,29 @@ $_SESSION['last_active'] = time();
 function is_strong_password($password) {
     return preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,}$/', $password);
 }
+
+$action = $_GET['action'] ?? '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim($_POST['username']);
+    $fullname = trim($_POST['fullname']);
+    $password = $_POST['password'];
+    $role = $_POST['role'];
+
+    if (!is_strong_password($password)) {
+        $error = "Password must be at least 8 characters long, include uppercase, lowercase, a number, and a special character.";
+    } else {
+        $hashed_pw = password_hash($password, PASSWORD_DEFAULT);
+
+        if ($action === 'edit') {
+            $id = $_POST['id'];
+            $stmt = $conn->prepare("UPDATE users SET username=?, fullname=?, password=?, role=? WHERE id=?");
+            $stmt->bind_param("ssssi", $username, $fullname, $hashed_pw, $role, $id);
+        } else {
+            $stmt = $conn->prepare("INSERT INTO users (username, fullname, password, role) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("ssss", $username, $fullname, $hashed_pw, $role);
+        }
+        $stmt->execute();
+        header("Location: users.php");
+        exit;
+    }
+}
