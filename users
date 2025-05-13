@@ -1,4 +1,6 @@
 <?php
+
+//We have somewhat created the skeleton of Role Based Access Control for Users to sign in Either as Doctor or Staff,this is one of our planned Security Measures
 session_start();
 require_once 'db.php';
 if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'Doctor') { echo "Access Denied"; exit; }
