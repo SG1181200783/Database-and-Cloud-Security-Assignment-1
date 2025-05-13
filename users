@@ -35,3 +35,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }
+
+if ($action === 'delete') {
+    $id = $_GET['id'];
+    $stmt = $conn->prepare("DELETE FROM users WHERE id=?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute(); header("Location: users.php"); exit;
+}
+$users = $conn->query("SELECT * FROM users");
+$edit = null;
+if ($action === 'edit' && isset($_GET['id'])) {
+    $id = $_GET['id'];
+    $result = $conn->query("SELECT * FROM users WHERE id=$id");
+    $edit = $result->fetch_assoc();
+}
+
+include 'header.php';
+?>
+<div class="container">
+<h2>User Management</h2>
+<table><tr><th>ID</th><th>Username</th><th>Full Name</th><th>Role</th><th>Actions</th></tr>
+<?php while($u = $users->fetch_assoc()): ?>
+<tr>
+<td><?= $u['id'] ?></td>
+<td><?= htmlspecialchars($u['username']) ?></td>
+<td><?= htmlspecialchars($u['fullname']) ?></td>
+<td><?= $u['role'] ?></td>
+<td>
+<a href="users.php?action=edit&id=<?= $u['id'] ?>" class="button">Edit</a>
+<a href="users.php?action=delete&id=<?= $u['id'] ?>" onclick="return confirm('Delete?')" class="button">Delete</a>
+</td>
+</tr>
+<?php endwhile; ?>
+</table>
+
+<h3><?= $action === 'edit' ? 'Edit' : 'Add' ?> User</h3>
+<form method="post" onsubmit="return validatePassword()">
+<?php if ($action === 'edit'): ?><input type="hidden" name="id" value="<?= $edit['id'] ?>"><?php endif; ?>
+<input type="text" name="username" required placeholder="Username" value="<?= $edit['username'] ?? '' ?>">
+<input type="text" name="fullname" required placeholder="Full Name" value="<?= $edit['fullname'] ?? '' ?>">
+<input type="password" name="password" required placeholder="Password" id="password">
+<small>Password must be at least 8 characters and include uppercase, lowercase, number, and special character.</small>
+<select name="role" required>
+    <option value="Doctor" <?= ($edit['role'] ?? '') === 'Doctor' ? 'selected' : '' ?>>Doctor</option>
+    <option value="Staff" <?= ($edit['role'] ?? '') === 'Staff' ? 'selected' : '' ?>>Staff</option>
+</select>
+<button type="submit"><?= $action === 'edit' ? 'Update' : 'Add' ?></button>
+</form>
+<?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
+</div>
+<script>
+function validatePassword() {
+    const pw = document.getElementById("password").value;
+    const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,}$/;
+    if (!strongRegex.test(pw)) {
+        alert("Password must include uppercase, lowercase, number, special character and be at least 8 characters.");
+        return false;
+    }
+    return true;
+}
+</script>
+
