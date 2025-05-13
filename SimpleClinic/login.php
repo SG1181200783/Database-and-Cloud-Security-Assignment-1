@@ -1,4 +1,6 @@
+
 <?php
+//Login Page somewhat done (Added Buttons for Doctor and Staff)
 session_start();
 require_once 'db.php';
 
