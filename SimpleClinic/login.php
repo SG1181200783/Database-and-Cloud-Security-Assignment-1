@@ -18,3 +18,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->bind_param("s", $username);
     $stmt->execute();
     $res = $stmt->get_result();
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim($_POST['username']);
+    $password = $_POST['password'];
+    $selected_role = $_POST['selected_role'];
+
+    $stmt = $conn->prepare("SELECT * FROM users WHERE username = ?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $res = $stmt->get_result();
+
+    if ($res->num_rows > 0) {
+        $user = $res->fetch_assoc();
+
+        if (!is_null($user['locked_until']) && strtotime($user['locked_until']) > time()) {
+            $status = "Locked Out";
+            log_audit($conn, $username, $selected_role, $status);
+            $remaining = round((strtotime($user['locked_until']) - time()) / 60);
+            $error = "Account is locked. Try again in $remaining minute(s).";
+        } elseif (password_verify($password, $user['password'])) {
+            if ($user['role'] === $selected_role) {
+                $reset = $conn->prepare("UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ?");
+                $reset->bind_param("i", $user['id']);
+                $reset->execute();
+
+                log_audit($conn, $username, $selected_role, "Success");
+
+                $_SESSION['user'] = $user;
+                $_SESSION['last_active'] = time();
+                header("Location: dashboard.php");
+                exit;
+            } else {
+                log_audit($conn, $username, $selected_role, "Role Mismatch");
+                $error = "Access Denied: You are not authorized to log in as a $selected_role.";
+            }
+        } else {
+            $attempts = $user['failed_attempts'] + 1;
+            $lock_time = NULL;
+
+            if ($attempts >= 3) {
+                $lock_time = date("Y-m-d H:i:s", strtotime("+5 minutes"));
+                $error = "Account locked for 5 minutes due to multiple failed attempts.";
+                $status = "Locked Out";
+            } else {
+                $error = "Incorrect password. Attempt $attempts of 3.";
+                $status = "Failed Login";
+            }
+
+            $update = $conn->prepare("UPDATE users SET failed_attempts = ?, locked_until = ? WHERE id = ?");
+            $update->bind_param("isi", $attempts, $lock_time, $user['id']);
+            $update->execute();
+
+            log_audit($conn, $username, $selected_role, $status);
+        }
+    } else {
+        log_audit($conn, $username, $selected_role, "User Not Found");
+        $error = "User not found.";
+    }
+}
