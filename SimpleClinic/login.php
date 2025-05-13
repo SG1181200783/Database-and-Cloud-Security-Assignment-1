@@ -77,3 +77,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "User not found.";
     }
 }
+
+//CSS
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login with Audit Logging</title>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        function setRole(role) {
+            document.getElementById('selected_role').value = role;
+            document.getElementById('login_form').submit();
+        }
+    </script>
+</head>
+<body>
+<div class="container">
+    <h2>Login</h2>
+    <form method="post" id="login_form">
+        <input type="text" name="username" required placeholder="Username">
+        <input type="password" name="password" required placeholder="Password">
+        <input type="hidden" name="selected_role" id="selected_role">
+        <button type="button" onclick="setRole('Doctor')">Login as Doctor</button>
+        <button type="button" onclick="setRole('Staff')">Login as Staff</button>
+    </form>
+    <p class="error"><?= isset($error) ? $error : '' ?></p>
+    <?php if (isset($_GET['timeout'])) echo "<p class='error'>⚠️ Your session has expired due to inactivity. Please log in again.</p>"; ?>
+
+</div>
+</body>
+</html>
+
