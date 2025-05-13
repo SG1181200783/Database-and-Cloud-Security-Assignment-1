@@ -1,0 +1,6 @@
+<?php
+session_start();
+require_once 'db.php';
+if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'Doctor') { echo "Access Denied"; exit; }
+if (time() - $_SESSION['last_active'] > 900) { session_unset(); session_destroy(); header("Location: login.php?timeout=1"); exit; }
+$_SESSION['last_active'] = time();
